@@ -1,5 +1,5 @@
 use core::{
-    any::{Any, TypeId}, cell::{Ref, RefCell, RefMut}, hash::Hash, marker::PhantomData, ops::{Deref, DerefMut}
+    any::{Any, TypeId}, cell::{Ref, RefCell, RefMut}, marker::PhantomData, ops::{Deref, DerefMut}
 };
 
 use alloc::boxed::Box;
@@ -12,7 +12,7 @@ pub trait ComponentParam {
     fn exists<'r>(config: &'r mut HashMap<TypeId, RefCell<Box<dyn Any>>>, services: &'r mut HashMap<TypeId, Box<dyn Any>>) -> bool;
 }
 
-pub struct Config<'a, T: 'static> {
+pub struct Config<'a, T: Default + 'static> {
     value: Ref<'a, Box<dyn Any>>,
     _marker: PhantomData<T>,
 }
@@ -33,7 +33,7 @@ impl<'res, T: Default + 'static> ComponentParam for Config<'res, T> {
     }
 }
 
-impl<'res, T: 'static> Deref for Config<'_, T> {
+impl<'res, T: Default + 'static> Deref for Config<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -41,7 +41,7 @@ impl<'res, T: 'static> Deref for Config<'_, T> {
     }
 }
 
-pub struct ConfigMut<'a, T: 'static> {
+pub struct ConfigMut<'a, T: Default + 'static> {
     value: RefMut<'a, Box<dyn Any>>,
     _marker: PhantomData<T>,
 }
@@ -62,7 +62,7 @@ impl<'res, T: Default + 'static> ComponentParam for ConfigMut<'res, T> {
     }
 }
 
-impl<T: 'static> Deref for ConfigMut<'_, T> {
+impl<T: Default + 'static> Deref for ConfigMut<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -70,7 +70,7 @@ impl<T: 'static> Deref for ConfigMut<'_, T> {
     }
 }
 
-impl<T: 'static> DerefMut for ConfigMut<'_, T> {
+impl<T: Default + 'static> DerefMut for ConfigMut<'_, T> {
     fn deref_mut(&mut self) -> &mut T {
         self.value.downcast_mut().unwrap()
     }
