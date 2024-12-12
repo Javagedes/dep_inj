@@ -1,4 +1,4 @@
-use dep_inj::{ComponentManager, params::{Config, ConfigMut}};
+use dep_inj::{ComponentManager, params::{Config, ConfigMut, Service}};
 
 fn component1() {
     println!("Component 1");
@@ -24,8 +24,8 @@ impl MyTrait for i32 {
     }
 }
 
-fn component4(data: Config<&dyn MyTrait>) {
-    data.print();
+fn component4(data: Service<&dyn MyTrait>) {
+    (*data).print();
 }
 
 fn main() {
@@ -34,7 +34,8 @@ fn main() {
 
     scheduler.add_config(32i32);
     scheduler.add_config(3.14f32);
-    scheduler.add_config(&32i32 as &dyn MyTrait);
+
+    scheduler.add_service(&32i32 as &dyn MyTrait);
 
     scheduler.add_component(component1);
     scheduler.add_component(component2);

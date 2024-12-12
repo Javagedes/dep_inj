@@ -18,3 +18,4 @@ path = "examples/struct_dep_inj.rs"
 
 [dependencies]
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
+log = { version = "0.4.22", default-features = false }

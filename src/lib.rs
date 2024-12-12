@@ -18,7 +18,7 @@ use hashbrown::HashMap;
 type StoredComponent = Box<dyn Component>;
 
 pub trait Component {
-    fn run(&mut self, config: &mut HashMap<TypeId, RefCell<Box<dyn Any>>>);
+    fn run(&mut self, config: &mut HashMap<TypeId, RefCell<Box<dyn Any>>>, services: &mut HashMap<TypeId, Box<dyn Any>>);
 }
 
 pub trait IntoComponent<Input> {
@@ -31,12 +31,13 @@ pub trait IntoComponent<Input> {
 pub struct ComponentManager {
     components: Vec<StoredComponent>,
     config: HashMap<TypeId, RefCell<Box<dyn Any>>>,
+    services: HashMap<TypeId, Box<dyn Any>>,
 }
 
 impl ComponentManager {
     pub fn run(&mut self) {
         for system in self.components.iter_mut() {
-            system.run(&mut self.config);
+            system.run(&mut self.config, &mut self.services);
         }
     }
 
@@ -47,8 +48,12 @@ impl ComponentManager {
         self.components.push(Box::new(component.into_component()));
     }
 
-    pub fn add_config<R: 'static>(&mut self, resource: R) {
+    pub fn add_config<C: Default + 'static>(&mut self, resource: C) {
         self.config
-            .insert(TypeId::of::<R>(), RefCell::new(Box::new(resource)));
+            .insert(TypeId::of::<C>(), RefCell::new(Box::new(resource)));
+    }
+
+    pub fn add_service<S: 'static>(&mut self, service: S) {
+        self.services.insert(TypeId::of::<S>(), Box::new(service));
     }
 }

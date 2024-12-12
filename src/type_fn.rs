@@ -23,7 +23,7 @@ macro_rules! impl_component {
                 FnMut($($params), *) +
                 FnMut($(<$params as ComponentParam>::Item<'b>), *)
         {
-            fn run(&mut self, resources: &mut HashMap<TypeId, RefCell<Box<dyn Any>>>) {
+            fn run(&mut self, config: &mut HashMap<TypeId, RefCell<Box<dyn Any>>>, services: &mut HashMap<TypeId, Box<dyn Any>>) {
                 fn call_inner<$($params),*>(
                     mut f: impl FnMut($($params),*),
                     $($params: $params,)*
@@ -32,7 +32,13 @@ macro_rules! impl_component {
                 }
 
                 $(
-                    let $params = $params::retrieve(resources);
+                    if !$params::exists(config, services) {
+                        return;
+                    }
+                )*
+
+                $(
+                    let $params = $params::retrieve(config, services);
                 )*
 
                 call_inner(&mut self.f, $($params),*);

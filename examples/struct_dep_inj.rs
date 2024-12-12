@@ -1,3 +1,3 @@
-mod dep_inj;
+use dep_inj;
 
 fn main() {}
