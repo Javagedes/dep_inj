@@ -1,10 +1,9 @@
 #![no_std]
 
-pub mod params;
-mod type_fn;
-mod type_struct;
-
-//pub use params::{Config, ConfigMut};
+mod params;
+mod access;
+mod function_component;
+mod struct_component;
 
 extern crate alloc;
 use core::{
@@ -18,7 +17,7 @@ use hashbrown::HashMap;
 type StoredComponent = Box<dyn Component>;
 
 pub trait Component {
-    fn run(&mut self, config: &mut HashMap<TypeId, RefCell<Box<dyn Any>>>, services: &mut HashMap<TypeId, Box<dyn Any>>) -> bool;
+    fn run(&mut self, storage: &mut Storage) -> bool;
 }
 
 pub trait IntoComponent<Input> {
@@ -30,13 +29,12 @@ pub trait IntoComponent<Input> {
 #[derive(Default)]
 pub struct ComponentManager {
     pub components: Vec<StoredComponent>,
-    config: HashMap<TypeId, RefCell<Box<dyn Any>>>,
-    services: HashMap<TypeId, Box<dyn Any>>,
+    storage: Storage,
 }
 
 impl ComponentManager {
     pub fn run(&mut self) {
-        self.components.retain_mut(|component| !component.run(&mut self.config, &mut self.services));
+        self.components.retain_mut(|component| !component.run(&mut self.storage));
     }
 
     pub fn add_component<'a, I, C: Component + 'static>(
@@ -47,11 +45,19 @@ impl ComponentManager {
     }
 
     pub fn add_config<C: Default + 'static>(&mut self, resource: C) {
-        self.config
+        self.storage.config
             .insert(TypeId::of::<C>(), RefCell::new(Box::new(resource)));
     }
 
     pub fn add_service<S: 'static>(&mut self, service: S) {
-        self.services.insert(TypeId::of::<S>(), Box::new(service));
+        self.storage.services.insert(TypeId::of::<S>(), Box::new(service));
     }
+}
+
+#[derive(Default)]
+pub struct Storage {
+    // Example: We use RefCell to allow for interior mutability by taking as Ref or RefMut
+    config: HashMap<TypeId, RefCell<Box<dyn Any>>>,
+    // Example: We don't use RefCell here because we don't need interior mutability
+    services: HashMap<TypeId, Box<dyn Any>>,
 }

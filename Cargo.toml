@@ -1,21 +1,10 @@
-[package]
-name = "dep_inj"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+resolver = "2"
 
-[lib]
-name = "dep_inj"
-path = "src/lib.rs"
+members = ["platform"]
 
-[[example]]
-name = "fn_dep_inj"
-path = "examples/fn_dep_inj.rs"
-
-[[example]]
-name = "struct_dep_inj"
-path = "examples/struct_dep_inj.rs"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+[workspace.dependencies]
+dxe_core = { path = "dxe_core" }
+sdk = { path = "sdk" }
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
 log = { version = "0.4.22", default-features = false }
