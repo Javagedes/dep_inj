@@ -1,6 +1,6 @@
 use core::any::TypeId;
 
-use sdk::component::params::{Config, Service};
+use sdk::component::params::{Config, ConfigMut, Service};
 
 use crate::Storage;
 
@@ -17,6 +17,21 @@ impl<'res, T: Default + 'static> ComponentParam for Config<'res, T> {
 
     fn retrieve<'r>(storage: &'r Storage) -> Self::Item<'r> {
         Config::from(storage.config.get(&TypeId::of::<T>()).unwrap())
+    }
+
+    // Config will always exist, as it is created with a default value when registering.
+    fn exists<'r>(_: &'r Storage) -> bool {
+        true
+    }
+}
+
+// An example of mutating Component parameters, but probably won't keep this as config should probably
+// remain immutable.
+impl<'res, T: Default + 'static> ComponentParam for ConfigMut<'res, T> {
+    type Item<'new> = ConfigMut<'new, T>;
+
+    fn retrieve<'r>(storage: &'r Storage) -> Self::Item<'r> {
+        ConfigMut::from(storage.config.get(&TypeId::of::<T>()).unwrap())
     }
 
     // Config will always exist, as it is created with a default value when registering.
