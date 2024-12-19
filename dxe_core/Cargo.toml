@@ -13,3 +13,4 @@ sdk = { workspace = true }
 hashbrown = { workspace = true }
 log = { workspace = true }
 fixedbitset = { workspace = true }
+r-efi = { workspace = true }

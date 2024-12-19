@@ -14,13 +14,15 @@
 //!
 use core::marker::PhantomData;
 
-use crate::{MetaData, Storage};
+use crate::{unsafe_storage::UnsafeStorageCell, MetaData};
+use sdk::component::Storage;
 
 use super::{params::ComponentParam, Component, IntoComponent};
 
 type ComponentParamItem<'w, 'state, P> = <P as ComponentParam>::Item<'w, 'state>;
 
 /// A [Component] implementation for a function whose parameters all implement [ComponentParam].
+#[allow(private_bounds)]
 pub struct FunctionComponent<Marker, Func>
 where
     Func: ComponentParamFunction<Marker>,
@@ -37,7 +39,11 @@ where
     Func: ComponentParamFunction<Marker>,
 {
     /// Runs the component if all parameters are retrievable from storage.
-    fn run(&mut self, storage: &mut Storage) -> bool {
+    ///
+    /// ## Safety
+    ///
+    /// - Each parameter must properly register its access type.
+    unsafe fn run_unsafe(&mut self, storage: UnsafeStorageCell) -> bool {
         let param_state = self.param_state.as_mut().expect("Should Exist");
         if !Func::Param::validate(param_state, storage) {
             return false;
@@ -81,7 +87,6 @@ where
 /// any amount of parameters. The macro [impl_component_param_function] implements this trait for the different
 /// amounts of parameters. This way we can more easily make Component implementation for functions more complex without
 /// having to mirror that complexity to the macro.
-#[allow(private_bounds)]
 trait ComponentParamFunction<Marker>: Send + Sync + 'static {
     type Param: ComponentParam;
 

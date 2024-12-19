@@ -25,12 +25,20 @@ impl Access {
 
     /// Returns true if the component needs mutable access to the config resources denoted by `id`.
     pub fn has_config_write(&self, id: usize) -> bool {
-        self.config_writes.contains(id)
+        self.exclusive | self.config_writes.contains(id)
     }
 
     /// Returns true if the component needs access read to the config resources denoted by `id`.
     pub fn has_config_read(&self, id: usize) -> bool {
-        self.config_read_and_writes.contains(id)
+        self.exclusive | self.config_read_and_writes.contains(id)
+    }
+
+    pub fn set_exclusive(&mut self) {
+        self.exclusive = true;
+    }
+
+    pub fn is_exclusive(&self) -> bool {
+        self.exclusive
     }
 }
 
