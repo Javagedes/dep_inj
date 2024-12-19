@@ -12,3 +12,4 @@ path = "src/lib.rs"
 sdk = { workspace = true }
 hashbrown = { workspace = true }
 log = { workspace = true }
+fixedbitset = { workspace = true }

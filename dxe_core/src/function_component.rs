@@ -1,56 +1,68 @@
 //! A Module representing a [Component] implementation for a function whose parameters implement [ComponentParam].
-//! 
+//!
 //! All code in this module does not need to be used directly by the user. It exists to be able to provide a blanket
 //! implementation for all functions whose parameters implement [ComponentParam]. This ranges from functions with no
 //! parameters (such as `fn my_component()`) to functions with multiple parameters (such as
 //! `fn my_component(data: Config<i32>, data2: Config<f32>)`).
-//! 
+//!
 //! The flow of how this module works is as follows:
-//! 
+//!
 //! [impl_component] is a macro that generates implementations for [ComponentParamFunction] for all functions whose
 //! parameters only implement [ComponentParam]. This allows us to write all remaining code and logic outside of the
 //! macro, allowing us to call functions on the parameters without knowing the exact number of parameters.
-//! 
-//! 
+//!
+//!
 use core::marker::PhantomData;
 
-use crate::Storage;
+use crate::{MetaData, Storage};
 
 use super::{params::ComponentParam, Component, IntoComponent};
 
-pub type ComponentParamItem<'w, P> = <P as ComponentParam>::Item<'w>;
+type ComponentParamItem<'w, 'state, P> = <P as ComponentParam>::Item<'w, 'state>;
 
-/// A [Component] implementation for a function whose parameters implement [ComponentParam].
-pub struct FunctionComponent<Marker, F>
-where 
-    F: ComponentParamFunction<Marker>,
+/// A [Component] implementation for a function whose parameters all implement [ComponentParam].
+pub struct FunctionComponent<Marker, Func>
+where
+    Func: ComponentParamFunction<Marker>,
 {
-    func: F,
+    func: Func,
+    param_state: Option<<Func::Param as ComponentParam>::State>,
+    metadata: MetaData,
     marker: PhantomData<fn() -> Marker>,
 }
 
-impl<Marker, F> Component for FunctionComponent<Marker, F>
-where 
+impl<Marker, Func> Component for FunctionComponent<Marker, Func>
+where
     Marker: 'static,
-    F: ComponentParamFunction<Marker>,
+    Func: ComponentParamFunction<Marker>,
 {
-    fn run(&mut self,
-        storage: &mut Storage,
-    ) -> bool {
-        if !F::Param::exists(storage) {
+    /// Runs the component if all parameters are retrievable from storage.
+    fn run(&mut self, storage: &mut Storage) -> bool {
+        let param_state = self.param_state.as_mut().expect("Should Exist");
+        if !Func::Param::validate(param_state, storage) {
             return false;
         }
 
-        let param_value = F::Param::retrieve(storage);
+        let param_value = Func::Param::retrieve(param_state, storage);
 
         self.func.run(param_value);
 
         true
     }
+
+    /// Returns the metadata of the component.
+    fn metadata(&self) -> &MetaData {
+        &self.metadata
+    }
+
+    /// One time initialization of the component. Should set access requirements.
+    fn initialize(&mut self, storage: &mut Storage) {
+        self.param_state = Some(Func::Param::initialize(storage, &mut self.metadata));
+    }
 }
 
 impl<Marker, F> IntoComponent<Marker> for F
-where 
+where
     Marker: 'static,
     F: ComponentParamFunction<Marker>,
 {
@@ -58,21 +70,25 @@ where
     fn into_component(self) -> Self::Component {
         FunctionComponent {
             func: self,
+            param_state: None,
+            metadata: MetaData::new::<F>(),
             marker: PhantomData,
         }
     }
 }
 
-pub trait ComponentParamFunction<Marker>: Send + Sync + 'static {
+/// An internal trait allows the Component implementation for FunctionComponent to be generic over a function with
+/// any amount of parameters. The macro [impl_component_param_function] implements this trait for the different
+/// amounts of parameters. This way we can more easily make Component implementation for functions more complex without
+/// having to mirror that complexity to the macro.
+#[allow(private_bounds)]
+trait ComponentParamFunction<Marker>: Send + Sync + 'static {
     type Param: ComponentParam;
 
-    fn run(
-        &mut self,
-        param_value: ComponentParamItem<Self::Param>,
-    );
+    fn run(&mut self, param_value: ComponentParamItem<Self::Param>);
 }
 
-macro_rules! impl_component {
+macro_rules! impl_component_param_function {
     ($($param:ident),*) => {
         #[allow(unused_variables)]
         #[allow(non_snake_case)]
@@ -98,9 +114,9 @@ macro_rules! impl_component {
     }
 }
 
-impl_component!();
-impl_component!(T1);
-impl_component!(T1, T2);
-impl_component!(T1, T2, T3);
-impl_component!(T1, T2, T3, T4);
-impl_component!(T1, T2, T3, T4, T5);
+impl_component_param_function!();
+impl_component_param_function!(T1);
+impl_component_param_function!(T1, T2);
+impl_component_param_function!(T1, T2, T3);
+impl_component_param_function!(T1, T2, T3, T4);
+impl_component_param_function!(T1, T2, T3, T4, T5);
